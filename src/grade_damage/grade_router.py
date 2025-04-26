@@ -36,9 +36,9 @@ def predict(request: Request, body: PredictRequest):
 
 @grade_router.post("/getmap")
 def getter(request: Request, body: GetMapRequest):
-    body.center_lat = 49.8397
-    body.center_lon = 24.0297
-    body.trotil_equivalent = 500
+    # body.center_lat = 49.8397
+    # body.center_lon = 24.0297
+    # body.trotil_equivalent = 500
 
     radii = get_destruction_radius(body.trotil_equivalent)
     nodes = get_city_data(body.center_lat, body.center_lon, radii)
