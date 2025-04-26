@@ -1,5 +1,5 @@
 import time
-import pickle
+from joblib import load
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -10,17 +10,10 @@ from src.grade_damage.grade_router import grade_router
 
 app = FastAPI()
 
-with open('src/model/weights/xgb_pipeline.pkl', 'rb') as f:
-    model = pickle.load(f)
-
-with open('src/model/scalers/scaler_X.pkl', 'rb') as f:
-    scaler_X = pickle.load(f)
-
-with open('src/model/scalers/scaler_y.pkl', 'rb') as f:
-    scaler_y = pickle.load(f)
+model = load('src/model/weights/xgb_pipeline.pkl')
+scaler_y = load('src/model/scalers/scaler_y.pkl')
 
 app.state.model = model
-app.state.scaler_X = scaler_X
 app.state.scaler_y = scaler_y
 
 app.add_middleware(
@@ -45,13 +38,10 @@ async def add_process_time_header(request: Request, call_next):
 async def health_check():
     return {"status": "OK"}
 
-app.include_router(grade_router, prefix="/api/grade", tags=["Grade"])
 
+app.include_router(grade_router, prefix="/api/grade", tags=["Grade"])
 
 if __name__ == '__main__':
     uvicorn.run("src.app:app", host="127.0.0.1", port=8000, reload=True)
 
     print(f"Model loaded successfully {model}")
-    print(f"Scaler_X loaded successfully {scaler_X}")
-    print(f"Scaler_y loaded successfully {scaler_y}")
-
