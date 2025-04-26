@@ -1,4 +1,6 @@
 import time
+
+import pandas as pd
 from joblib import load
 
 import uvicorn
@@ -12,9 +14,11 @@ app = FastAPI()
 
 model = load('src/model/weights/xgb_pipeline.pkl')
 scaler_y = load('src/model/scalers/scaler_y.pkl')
+df = pd.read_excel('src/model/dataframe/2025_01_13_en_vidnovydim_participants.xlsx')
 
 app.state.model = model
 app.state.scaler_y = scaler_y
+app.state.mean50 = df['Project cost, UAH'].describe().loc["50%"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,5 +47,3 @@ app.include_router(grade_router, prefix="/api/grade", tags=["Grade"])
 
 if __name__ == '__main__':
     uvicorn.run("src.app:app", host="127.0.0.1", port=8000, reload=True)
-
-    print(f"Model loaded successfully {model}")

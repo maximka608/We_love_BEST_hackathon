@@ -2,13 +2,18 @@ import pandas as pd
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from src.grade_damage.services import get_city_data
+from src.grade_damage.services import get_city_data, get_destruction_radius
 
 
 class PredictRequest(BaseModel):
     total_house_area_m2: float
     damage_level: str
     floors: int
+
+class GetMapRequest(BaseModel):
+    center_lat: float
+    center_lon: float
+    trotil_equivalent: float
 
 
 grade_router = APIRouter()
@@ -18,19 +23,24 @@ grade_router = APIRouter()
 def predict(request: Request, body: PredictRequest):
     model = request.app.state.model
     scaler_y = request.app.state.scaler_y
+    mean50 = request.app.state.mean50
+    deviation = mean50 * 0.5
 
-    input_data = pd.DataFrame([body.dict()])
+    input_data = pd.DataFrame([body.model_dump()])
 
     prediction = model.predict(input_data)
     y_pred_original = scaler_y.inverse_transform(prediction.reshape(-1, 1))
-    std = scaler_y.var_**0.5
-    return {"prediction": y_pred_original.tolist(), "std": std}
+
+    return {"prediction": [y_pred_original.tolist()[0][0] - deviation, y_pred_original.tolist()[0][0] + deviation], "deviation": deviation}
 
 
-@grade_router.get("/getter")
-def getter(request: Request):
-    center_lat, center_lon = 49.8397, 24.0297  # Lviv center
-    radii = [100, 300, 600]
-    nodes = get_city_data(center_lat, center_lon, radii)
+@grade_router.post("/getmap")
+def getter(request: Request, body: GetMapRequest):
+    body.center_lat = 49.8397
+    body.center_lon = 24.0297
+    body.trotil_equivalent = 500
 
-    return {"message": f"{nodes}"}
+    radii = get_destruction_radius(body.trotil_equivalent)
+    nodes = get_city_data(body.center_lat, body.center_lon, radii)
+
+    return {"nodes": f"{nodes}"}

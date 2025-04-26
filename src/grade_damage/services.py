@@ -126,3 +126,15 @@ def get_city_data(center_lat, center_lon, radii):
     payload_json = json.loads(payload_json_str)
 
     return payload_json
+
+
+def get_destruction_radius(trotil_equivalent):
+    k1 = 10  # сильне ураження
+    k2 = 20  # середнє ураження
+    k3 = 40  # слабке ураження
+
+    r1 = k1 * trotil_equivalent ** (1 / 3)
+    r2 = k2 * trotil_equivalent ** (1 / 3)
+    r3 = k3 * trotil_equivalent ** (1 / 3)
+
+    return [r1, r2, r3]
