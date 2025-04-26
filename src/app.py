@@ -1,21 +1,19 @@
 import time
-from contextlib import asynccontextmanager
+import pickle
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import origins
-from src.mongo_db.mongo import close_mongo_connection, connect_to_mongo
+from src.grade_damage.grade_router import grade_router
 
+app = FastAPI()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    connect_to_mongo()
-    yield
-    close_mongo_connection()
+with open('src/model/xgb_pipeline.pkl', 'rb') as f:
+    model = pickle.load(f)
 
-app = FastAPI(lifespan=lifespan)
+app.state.model = model
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,9 +32,12 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+
 @app.get("/")
 async def health_check():
     return {"status": "OK"}
+
+app.include_router(grade_router, prefix="/api/grade", tags=["Grade"])
 
 
 if __name__ == '__main__':
