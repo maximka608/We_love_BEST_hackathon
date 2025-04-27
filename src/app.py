@@ -35,6 +35,9 @@ from fastapi.responses import JSONResponse
 
 @app.middleware("http")
 async def block_non_ua_ips(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)  # Дозволити всі preflight запити
+
     client_ip = request.client.host
     try:
         response = await reader.city(client_ip)
@@ -48,8 +51,9 @@ async def block_non_ua_ips(request: Request, call_next):
             content={"detail": "Access denied. Only for Ukrainian IPs."}
         )
 
-    response = await call_next(request)  # Now properly awaited
+    response = await call_next(request)
     return response
+
 
 
 @app.middleware("http")
