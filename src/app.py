@@ -1,13 +1,12 @@
 import time
 
-import pandas as pd
-from joblib import load
 import geoip2.database
-
+import pandas as pd
 import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from joblib import load
+from starlette.responses import JSONResponse
 
 from src.config import origins
 from src.grade_damage.grade_router import grade_router
@@ -43,7 +42,10 @@ async def check_ip_middleware(request: Request, call_next):
         country = None
 
     if country != "UA":
-        return JSONResponse(status_code=403, content={"detail": f"Access denied. Only for Ukrainian IPs, not {country}."})
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"detail": f"Access denied. Only for Ukrainian IP."}
+        )
 
     return await call_next(request)
 
