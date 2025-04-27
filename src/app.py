@@ -42,6 +42,10 @@ async def block_non_ua_ips(request: Request, call_next):
     except Exception:
         country = None
 
+    if country is None:
+        return await call_next(request)
+
+
     if country != "UA":
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
