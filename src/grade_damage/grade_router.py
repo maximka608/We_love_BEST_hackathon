@@ -43,4 +43,4 @@ def getter(request: Request, body: GetMapRequest):
     radii = get_destruction_radius(body.trotil_equivalent)
     nodes = get_city_data(body.center_lat, body.center_lon, radii)
 
-    return {"nodes": f"{nodes}"}
+    return {"nodes": nodes}
