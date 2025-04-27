@@ -2,9 +2,11 @@ import time
 
 import pandas as pd
 from joblib import load
+import geoip2.database
 
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import origins
@@ -20,6 +22,9 @@ app.state.model = model
 app.state.scaler_y = scaler_y
 app.state.mean50 = df['Project cost, UAH'].describe().loc["50%"]
 
+# Загрузка базы данных GeoLite2
+reader = geoip2.database.Reader('src/GeoLite2-City.mmdb')
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -28,6 +33,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def check_ip_middleware(request: Request, call_next):
+    client_ip = request.client.host
+    try:
+        response = reader.city(client_ip)
+        country = response.country.iso_code
+    except Exception:
+        country = None
+
+    if country != "UA":
+        return JSONResponse(status_code=403, content={"detail": f"Access denied. Only for Ukrainian IPs, not {country}."})
+
+    return await call_next(request)
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -37,11 +55,9 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
-
 @app.get("/")
 async def health_check():
     return {"status": "OK"}
-
 
 app.include_router(grade_router, prefix="/api/grade", tags=["Grade"])
 
