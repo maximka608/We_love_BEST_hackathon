@@ -35,13 +35,10 @@ from fastapi.responses import JSONResponse
 
 @app.middleware("http")
 async def block_non_ua_ips(request: Request, call_next):
-    if request.method == "OPTIONS":
-        return await call_next(request)  # Дозволити всі preflight запити
-
     client_ip = request.client.host
     try:
-        response = await reader.city(client_ip)
-        country = await response.country.iso_code
+        response = reader.city(client_ip)
+        country = response.country.iso_code
     except Exception:
         country = None
 
@@ -51,24 +48,23 @@ async def block_non_ua_ips(request: Request, call_next):
             content={"detail": "Access denied. Only for Ukrainian IPs."}
         )
 
-    response = await call_next(request)
-    return response
-
+    return await call_next(request)
 
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.perf_counter()
     try:
-        response = await call_next(request)  # Awaiting the async call
+        response = await call_next(request)
     except HTTPException as exc:
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail}
         )
     process_time = time.perf_counter() - start_time
-    response.headers["X-Process-Time"] = str(process_time)  # Now it's safe to access headers
+    response.headers["X-Process-Time"] = str(process_time)
     return response
+
 
 @app.get("/")
 async def health_check():
