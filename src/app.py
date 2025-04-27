@@ -3,10 +3,9 @@ import time
 import geoip2.database
 import pandas as pd
 import uvicorn
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from joblib import load
-from starlette.responses import JSONResponse
 
 from src.config import origins
 from src.grade_damage.grade_router import grade_router
@@ -32,8 +31,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import JSONResponse
+
 @app.middleware("http")
-async def check_ip_middleware(request: Request, call_next):
+async def block_non_ua_ips(request: Request, call_next):
     client_ip = request.client.host
     try:
         response = reader.city(client_ip)
@@ -44,18 +45,27 @@ async def check_ip_middleware(request: Request, call_next):
     if country != "UA":
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
-            content={"detail": f"Access denied. Only for Ukrainian IP."}
+            content={"detail": "Access denied. Only for Ukrainian IPs."}
         )
 
     return await call_next(request)
 
+
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except HTTPException as exc:
+        # Якщо викинуто HTTPException, теж формуємо відповідь правильно
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail}
+        )
     process_time = time.perf_counter() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     return response
+
 
 @app.get("/")
 async def health_check():
