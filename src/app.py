@@ -48,24 +48,23 @@ async def block_non_ua_ips(request: Request, call_next):
             content={"detail": "Access denied. Only for Ukrainian IPs."}
         )
 
-    return await call_next(request)
+    response = await call_next(request)  # Now properly awaited
+    return response
 
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     start_time = time.perf_counter()
     try:
-        response = await call_next(request)
+        response = await call_next(request)  # Awaiting the async call
     except HTTPException as exc:
-        # Якщо викинуто HTTPException, теж формуємо відповідь правильно
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail}
         )
     process_time = time.perf_counter() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
+    response.headers["X-Process-Time"] = str(process_time)  # Now it's safe to access headers
     return response
-
 
 @app.get("/")
 async def health_check():
