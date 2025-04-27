@@ -5,5 +5,5 @@ load_dotenv()
 
 origins = [
     "http://localhost:3000",
-    "https://accessible-places-finder-frontend.onrender.com"
+    "https://best-damage-map-frontent.onrender.com"
 ]
