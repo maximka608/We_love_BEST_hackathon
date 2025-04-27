@@ -37,8 +37,8 @@ from fastapi.responses import JSONResponse
 async def block_non_ua_ips(request: Request, call_next):
     client_ip = request.client.host
     try:
-        response = reader.city(client_ip)
-        country = response.country.iso_code
+        response = await reader.city(client_ip)
+        country = await response.country.iso_code
     except Exception:
         country = None
 
